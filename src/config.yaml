@@ -1,6 +1,7 @@
 baseURL: 'http://example.org/'
 languageCode: 'en-us'
 title: 'My Podcasts'
+theme: 'github.com/frjo/hugo-theme-zen'
 paginate: 25
 publishDir: '../dist/public'
 module:
@@ -11,3 +12,5 @@ module:
     mounts:
     - source: 'static'
       target: 'static/podcasts'
+  - path: 'github.com/frjo/hugo-theme-zen'
+    disabled: false
