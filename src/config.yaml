@@ -1,0 +1,13 @@
+baseURL: 'http://example.org/'
+languageCode: 'en-us'
+title: 'My Podcasts'
+paginate: 25
+publishDir: '../dist/public'
+module:
+  replacements: 'content -> ../../dist/content,static -> ../../dist/static'
+  imports:
+  - path: 'static'
+    disabled: false
+    mounts:
+    - source: 'static'
+      target: 'static/podcasts'

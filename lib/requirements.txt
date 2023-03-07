@@ -1,0 +1,5 @@
+pandoc
+python-frontmatter
+pyyaml
+requests
+unidecode
