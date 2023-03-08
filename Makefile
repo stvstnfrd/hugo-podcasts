@@ -8,6 +8,7 @@ HUGO_CONFIG_FILE=$(HUGO_SITE_NAME)/config.yaml
 PYTHON=PYTHONPATH=./lib ./.venv/bin/python
 PYTHON_REQUIREMENTS=./lib/requirements.txt
 PYLINT=PYTHONPATH=./lib ./.venv/bin/pylint
+COVERAGE=PYTHONPATH=./lib ./.venv/bin/coverage
 
 OPML_FILE=etc/feed.opml
 
@@ -158,10 +159,19 @@ ifeq (1,$(GIT_HAS_ORIGIN))
 endif
 endif
 
-.PHONY: pylint
-pylint:
+.PHONY: lint-python
+lint-python:
 	$(PYLINT) lib/ --disable fixme
 
-.PHONY: todo
-todo:
+.PHONY: lint-todo
+lint-todo:
 	$(PYLINT) lib/ --disable all --enable fixme
+
+.PHONY: lint-hugo
+lint-hugo:
+	$(MAKE) build
+
+.PHONY:
+test-python:
+	$(COVERAGE) run -m unittest discover lib/
+	$(COVERAGE) report
