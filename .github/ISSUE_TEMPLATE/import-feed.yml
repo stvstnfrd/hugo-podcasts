@@ -32,3 +32,11 @@ body:
       placeholder: https://.../
     validations:
       required: false
+  - type: dropdown
+    attributes:
+      label: action
+      multiple: false
+      options:
+        - import-feed
+    validations:
+      required: true

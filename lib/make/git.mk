@@ -14,7 +14,7 @@ endif
 GIT_BRANCH_CURRENT=$(shell $(GIT) branch --show-current)
 # Set these to a non-empty value to:
 ## Commit changes made by the target
-GIT_COMMIT=
+GIT_COMMIT=0
 ## Push commits to the remote repository
 GIT_PUSH=
 GIT_FETCH=
@@ -40,31 +40,31 @@ $(GIT) status --untracked-files=no --porcelain $(1) \
 endef
 
 define git-checkout-branch
-ifeq (1,$(GIT_BRANCH))
-	$(GIT) branch | grep " $(1)$$" --silent \
-	|| $(GIT) branch "$(1)" "main"
-	$(GIT) checkout "$(1)"
-endif
+	if [ "$(GIT_BRANCH)" = 1 ]; then \
+		$(GIT) branch | grep " $(1)$$" --silent \
+		|| $(GIT) branch "$(1)" "main"; \
+		$(GIT) checkout "$(1)"; \
+	fi
 endef
 
 define git-commit-path
-ifeq (1,$(GIT_COMMIT))
-	"$(GIT)" status --untracked-files=all --porcelain $(1) \
-	| grep '.' --silent \
-	&& { \
-		$(GIT) add $(1) \
-		&& $(GIT) commit -m '$(2)' \
-	; } \
-	|| true
-ifeq (1,$(GIT_PUSH))
-	$(GIT) push origin "$(GIT_BRANCH_CONTENT)"
-endif
-endif
+	if [ "$(GIT_COMMIT)" = 1 ]; then \
+		"$(GIT)" status --untracked-files=all --porcelain $(1) \
+		| grep '.' --silent \
+		&& { \
+			$(GIT) add $(1) \
+			&& $(GIT) commit -m '$(2)' \
+		; } \
+		|| true; \
+		if [ "$(GIT_PUSH)" = 1 ]; then \
+			$(GIT) push origin "$(GIT_BRANCH_CONTENT)"; \
+		fi \
+	fi
 endef
 
 define git-fetch
-ifeq (1,$(GIT_FETCH))
-	"$(GIT)" fetch origin
-	"$(GIT)" rebase "origin/$(1)"
-endif
+	if [ "$(GIT_FETCH)" = 1 ]; then \
+		"$(GIT)" fetch origin; \
+		"$(GIT)" rebase "origin/$(1)"; \
+	fi
 endef

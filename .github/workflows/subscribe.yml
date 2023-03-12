@@ -1,5 +1,8 @@
 name: Subscribe to an RSS Feed
 on:
+  issues:
+    types:
+    - opened
   workflow_dispatch:
     inputs:
       url:
@@ -22,43 +25,83 @@ on:
         required: false
         type: string
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.params.outputs.url }}
+      title: ${{ steps.params.outputs.title }}
+      website: ${{ steps.params.outputs.website }}
+      file: ${{ steps.params.outputs.file }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set parameters
+      id: params
+      run: |
+        url=''
+        if [ "${GITHUB_EVENT_NAME}" = 'issues' ]; then
+          printf '%s\n' '${{ github.event.issue.body }}' >issue.txt
+          action="$(./bin/get-key-from-issue Action issue.txt)"
+          if [ "${action}" = import-feed ]; then
+            url="$(./bin/get-key-from-issue URL issue.txt)"
+            title="$(./bin/get-key-from-issue Title issue.txt)"
+            website="$(./bin/get-key-from-issue Website issue.txt)"
+            file='etc/feed.opml'
+          fi
+        elif  [ "${GITHUB_EVENT_NAME}" = 'workflow_dispatch' ]; then
+          url="${{ inputs.url }}"
+          title="${{ inputs.title }}"
+          website="${{ inputs.website }}"
+          file="${{ inputs.file }}"
+        else
+          echo 'Unsupported workflow type' >/dev/stderror
+        fi
+        echo "url=${url}" >>"${GITHUB_OUTPUT}"
+        echo "title=${title}" >>"${GITHUB_OUTPUT}"
+        echo "website=${website}" >>"${GITHUB_OUTPUT}"
+        echo "file=${file}" >>"${GITHUB_OUTPUT}"
   subscribe:
+    needs: setup
+    if: needs.setup.outputs.url
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Add entry to OPML file
-      run: "make subscribe OPML_URL='${{ inputs.url }}' OPML_TITLE='${{ inputs.title }}' OPML_WEBSITE='${{ inputs.website }}' OPML_FILE='${{ inputs.file }}'"
+      env:
+        OPML_URL: ${{ needs.setup.outputs.url }}
+        OPML_TITLE: ${{ needs.setup.outputs.title }}
+        OPML_WEBSITE: ${{ needs.setup.outputs.website }}
+        OPML_FILE: ${{ needs.setup.outputs.file }}
+      run: make subscribe
     - name: Validate the updated file
       run: make lint-xml
     - name: Preview the feed
       id: feed
       run: |
-        if [ "${{ inputs.title }}" ]
-        then
-            title="${{ inputs.title }}"
-        else
-            title="${{ inputs.url }}"
-        fi
+        title="${{ needs.setup.outputs.title }}"
+        title="${title:-${{ needs.setup.outputs.url }}}"
         echo "title=${title}" >>"${GITHUB_OUTPUT}"
         delimiter="$(openssl rand -hex 8)"
         echo "contents<<${delimiter}" >>"${GITHUB_OUTPUT}"
-        curl "${{ inputs.url }}" >input.xml
+        curl '${{ needs.setup.outputs.url }}' >input.xml
         xmllint --format input.xml >>"${GITHUB_OUTPUT}"
         echo "${delimiter}" >>"${GITHUB_OUTPUT}"
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v4
       with:
         add-paths: |
-          ${{ inputs.file }}
+          ${{ needs.setup.outputs.file }}
         branch-suffix: timestamp
-        commit-message: 'feat: subscribe to new feed; ${{ steps.feed.outputs.title }}'
+        commit-message: |
+          feat: subscribe to new feed; ${{ steps.feed.outputs.title }}
+
+          Fix #${{ github.event.issue.number }}
         delete-branch: true
         title: 'feat: subscribe to new feed; ${{ steps.feed.outputs.title }}'
         body: |
           # ${{ steps.feed.outputs.title }}
 
-          - [Feed](${{ inputs.url }})
-          - [Website](${{ inputs.website }})
+          - [Feed](${{ needs.setup.outputs.url }})
+          - [Website](${{ needs.setup.outputs.website }})
 
           ## Preview
           ```xml

@@ -1,0 +1,40 @@
+#!/bin/sh
+#h NAME:
+#h 	get-key-from-issue
+#h
+#h SYNOPSIS:
+#h 	get-key-from-issue KEY-NAME FILE-NAME
+#h
+#h 	See complete help with `get-key-from-issue -h`.
+#h
+#h DESCRIPTION:
+#h 	Perform a key/value lookup from a GitHub Issues Form Template markdown file
+#h
+#h EXAMPLES:
+#h 	get-key-from-issue url ./etc/issue.markdown
+#h
+#h EXIT STATUS:
+#h 	0
+#h
+#h FILES:
+#h 	Input FILE-NAME of the form:
+#h
+#h 	```markdown
+#h 	### key1
+#h 	
+#h 	value1
+#h 	
+#h 	### key2
+#h 	
+#h 	value2
+#h 	```
+#
+set -aeu
+while getopts ":h" option; do case ${option} in h) grep '^#h' "${0}" | sed 's/^#h \?//g'; exit;; *) ;; esac; done
+
+key="${1}"
+file="${2}"
+flags='--max-count=1 --after-context=2 -i'
+# shellcheck disable=SC2086
+value="$(grep ${flags} "^### ${key}$" "${file}" | tail --lines=1)"
+echo "${value}"
